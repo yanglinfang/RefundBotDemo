@@ -1,6 +1,22 @@
-version: '3.8'
-
 services:
+  # Ollama - Local LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - refund-network
+    # GPU support (uncomment if you have NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
   # Refund Bot - Main service
   refund-bot:
     build:
@@ -12,15 +28,16 @@ services:
       - DATABASE_URL=sqlite+aiosqlite:///./data/refund_bot.db
       - ORDERS_SERVICE_URL=http://mock-orders:8001
       - PAYMENTS_SERVICE_URL=http://mock-payments:8002
-      - LLM_API_URL=${LLM_API_URL:-https://api.openai.com/v1}
-      - LLM_API_KEY=${LLM_API_KEY}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_API_URL=${LLM_API_URL:-http://ollama:11434/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2:1b}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./data:/app/data
     depends_on:
       - mock-orders
       - mock-payments
+      - ollama
     networks:
       - refund-network
 
@@ -51,3 +68,6 @@ services:
 networks:
   refund-network:
     driver: bridge
+
+volumes:
+  ollama_data:

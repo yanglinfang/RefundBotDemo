@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(curl:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(ollama:*)"
     ]
   }
 }
