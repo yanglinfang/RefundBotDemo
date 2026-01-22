@@ -68,6 +68,8 @@ class LLMRouter:
         strategy: Optional[str] = None,
         health_timeout: float = 5.0,
         cooldown_seconds: float = 30.0,
+        complexity_threshold: Optional[int] = None,
+        complexity_char_threshold: Optional[int] = None,
     ) -> None:
         self.endpoints: List[LLMEndpoint] = endpoints or settings.get_llm_endpoints()
         if not self.endpoints:
@@ -76,6 +78,16 @@ class LLMRouter:
         self.strategy = self._normalize_strategy(strategy or settings.llm_router_strategy)
         self.health_timeout = health_timeout
         self.cooldown_seconds = cooldown_seconds
+        self.complexity_threshold = (
+            complexity_threshold
+            if complexity_threshold is not None
+            else settings.llm_complexity_threshold
+        )
+        self.complexity_char_threshold = (
+            complexity_char_threshold
+            if complexity_char_threshold is not None
+            else settings.llm_complexity_char_threshold
+        )
         self.endpoint_stats: Dict[str, EndpointStats] = {
             endpoint.name: EndpointStats() for endpoint in self.endpoints
         }
@@ -98,6 +110,7 @@ class LLMRouter:
         context = context or {}
         available = self._filter_available_endpoints()
         candidates = available if available else list(self.endpoints)
+        candidates = self._apply_complexity_routing(candidates, context)
 
         if self.strategy == RoutingStrategy.SINGLE:
             endpoint = self._select_primary(candidates)
@@ -147,6 +160,36 @@ class LLMRouter:
     def _select_primary(self, candidates: List[LLMEndpoint]) -> LLMEndpoint:
         """Select a single endpoint for the SINGLE strategy."""
         return min(candidates, key=lambda ep: (ep.priority, not ep.is_local))
+
+    def _apply_complexity_routing(
+        self,
+        candidates: List[LLMEndpoint],
+        context: dict,
+    ) -> List[LLMEndpoint]:
+        """
+        Prefer cloud endpoints when message complexity exceeds thresholds.
+        """
+        if not candidates:
+            return candidates
+
+        complexity_score = context.get("complexity_score")
+        message_chars = context.get("message_chars")
+        unique_words = context.get("unique_words")
+
+        is_complex = False
+        if isinstance(complexity_score, int) and complexity_score >= self.complexity_threshold:
+            is_complex = True
+        if isinstance(unique_words, int) and unique_words >= self.complexity_threshold:
+            is_complex = True
+        if isinstance(message_chars, int) and message_chars >= self.complexity_char_threshold:
+            is_complex = True
+
+        if not is_complex:
+            return candidates
+
+        non_local = [ep for ep in candidates if not ep.is_local]
+        local = [ep for ep in candidates if ep.is_local]
+        return non_local + local if non_local else candidates
 
     def _filter_available_endpoints(self) -> List[LLMEndpoint]:
         """Filter endpoints that are currently considered healthy."""

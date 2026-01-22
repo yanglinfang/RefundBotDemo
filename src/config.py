@@ -26,6 +26,7 @@ class LLMEndpoint(BaseModel):
     priority: int = 10
     is_local: bool = False
     cost_per_1k_tokens: Optional[float] = None
+    request_timeout_seconds: Optional[float] = None
 
 
 class Settings(BaseSettings):
@@ -46,6 +47,9 @@ class Settings(BaseSettings):
     # Router configuration
     llm_router_strategy: str = "fallback"
     llm_endpoints_json: str = ""  # JSON string of endpoints
+    llm_complexity_threshold: int = 40
+    llm_complexity_char_threshold: int = 800
+    llm_request_timeout_seconds: float = 20.0
 
     # Refund Policy
     refund_window_days: int = 30

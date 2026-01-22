@@ -63,6 +63,17 @@ def test_routing_plan_single_selects_primary():
     assert [endpoint.name for endpoint in plan] == ["local"]
 
 
+def test_routing_plan_complexity_prefers_cloud():
+    router = LLMRouter(
+        endpoints=_endpoints(),
+        strategy="fallback",
+        complexity_threshold=3,
+        complexity_char_threshold=9999,
+    )
+    plan = router.get_routing_plan(context={"complexity_score": 5})
+    assert [endpoint.name for endpoint in plan] == ["cloud", "local"]
+
+
 @pytest.mark.asyncio
 async def test_record_success_updates_stats():
     router = LLMRouter(endpoints=_endpoints(), strategy="fallback")

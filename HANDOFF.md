@@ -190,6 +190,9 @@ RefundBot/
 | LLM_MODEL | llama3.2:1b | Model to use |
 | LLM_ROUTER_STRATEGY | fallback | Routing strategy (single, fallback, cost, latency, load) |
 | LLM_ENDPOINTS_JSON | (empty) | JSON array of LLM endpoints for routing |
+| LLM_COMPLEXITY_THRESHOLD | 40 | Unique-word threshold to route to cloud |
+| LLM_COMPLEXITY_CHAR_THRESHOLD | 800 | Character threshold to route to cloud |
+| LLM_REQUEST_TIMEOUT_SECONDS | 20 | Timeout per LLM request before fallback |
 | LOG_LEVEL | INFO | Logging level |
 
 ## Notes for Next Agent

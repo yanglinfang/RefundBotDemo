@@ -2,6 +2,7 @@
 LLM Client - Integration with OpenAI-compatible LLM API
 """
 
+import asyncio
 import logging
 import re
 import time
@@ -9,7 +10,7 @@ from typing import Dict, List, Optional
 
 from openai import AsyncOpenAI
 
-from src.config import LLMEndpoint
+from src.config import LLMEndpoint, settings
 from src.services.llm_router import get_llm_router
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,11 @@ Only respond with the format above, nothing else."""
                 temperature=0.1,
                 max_tokens=150,
                 request_type="intent_analysis",
-                context={"customer_id": customer_id, "message_chars": len(message)},
+                context={
+                    "customer_id": customer_id,
+                    "message_chars": len(message),
+                    "message": message,
+                },
             )
 
             result_text = response.choices[0].message.content.strip()
@@ -143,7 +148,11 @@ Only respond with the format above, nothing else."""
                 temperature=0.7,
                 max_tokens=300,
                 request_type="general_response",
-                context={"history_count": len(conversation_history)},
+                context={
+                    "history_count": len(conversation_history),
+                    "message": message,
+                    "message_chars": len(message),
+                },
             )
 
             return response.choices[0].message.content.strip()
@@ -176,7 +185,7 @@ Keep it concise (2-3 sentences) and professional."""
                 temperature=0.5,
                 max_tokens=150,
                 request_type="refund_confirmation",
-                context={"order_id": order_id},
+                context={"order_id": order_id, "message": prompt, "message_chars": len(prompt)},
             )
 
             return response.choices[0].message.content.strip()
@@ -207,7 +216,7 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 temperature=0.5,
                 max_tokens=200,
                 request_type="refund_denial",
-                context={"order_id": order_id},
+                context={"order_id": order_id, "message": prompt, "message_chars": len(prompt)},
             )
 
             return response.choices[0].message.content.strip()
@@ -228,10 +237,18 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
         """
         Execute a chat completion request using the router for endpoint selection.
         """
+        context = {**(context or {})}
+        if "complexity_score" not in context:
+            text = context.get("message") or self._latest_user_message(messages)
+            if text:
+                context["complexity_score"] = self._compute_complexity_score(text)
+                context.setdefault("unique_words", context["complexity_score"])
+                context.setdefault("message_chars", len(text))
+
         plan = self.router.get_routing_plan(
             context={
                 "request_type": request_type,
-                **(context or {})
+                **context,
             }
         )
         last_error: Optional[Exception] = None
@@ -241,14 +258,22 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
             client = self._get_client(endpoint)
             await self.router.mark_request_start(endpoint.name)
             start = time.perf_counter()
+            timeout_seconds = (
+                endpoint.request_timeout_seconds
+                if endpoint.request_timeout_seconds is not None
+                else settings.llm_request_timeout_seconds
+            )
 
             try:
                 logger.info("LLM request using endpoint %s for %s", endpoint.name, request_type)
-                response = await client.chat.completions.create(
-                    model=endpoint.model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens
+                response = await asyncio.wait_for(
+                    client.chat.completions.create(
+                        model=endpoint.model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    ),
+                    timeout=timeout_seconds,
                 )
                 latency_ms = (time.perf_counter() - start) * 1000
                 await self.router.record_success(endpoint.name, latency_ms)
@@ -271,3 +296,17 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 api_key=endpoint.api_key or "dummy-key"
             )
         return self._clients[endpoint.name]
+
+    @staticmethod
+    def _compute_complexity_score(text: str) -> int:
+        """Return a simple complexity score based on unique word count."""
+        words = re.findall(r"\b\w+\b", text.lower())
+        return len(set(words))
+
+    @staticmethod
+    def _latest_user_message(messages: List[dict]) -> Optional[str]:
+        """Return the most recent user message content."""
+        for message in reversed(messages):
+            if message.get("role") == "user":
+                return message.get("content")
+        return None
