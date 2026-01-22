@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Refund Bot - Main service
+  refund-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/refund_bot.db
+      - ORDERS_SERVICE_URL=http://mock-orders:8001
+      - PAYMENTS_SERVICE_URL=http://mock-payments:8002
+      - LLM_API_URL=${LLM_API_URL:-https://api.openai.com/v1}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - mock-orders
+      - mock-payments
+    networks:
+      - refund-network
+
+  # Mock Orders Service
+  mock-orders:
+    build:
+      context: ./services/mock-orders
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - refund-network
+
+  # Mock Payments Service
+  mock-payments:
+    build:
+      context: ./services/mock-payments
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - refund-network
+
+networks:
+  refund-network:
+    driver: bridge
