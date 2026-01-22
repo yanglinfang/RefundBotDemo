@@ -86,9 +86,16 @@ LLM_MODEL=llama3.2:1b
 
 **Both approaches use the same OpenAI-compatible API format**, making them interchangeable.
 
+### 4. LLM Router Implementation ✅
+
+- Multi-endpoint routing with fallback/cost/latency/load strategies
+- Health checks and metrics via `/health/llm`
+- Automatic failover between endpoints
+- Request/latency/failure tracking per endpoint
+
 ## Current State
 
-The system is fully functional with manual switching between cloud and local LLM:
+The system is fully functional with configurable LLM routing between cloud and local backends:
 
 ```bash
 # Start services
@@ -103,69 +110,9 @@ curl -X POST http://localhost:8000/api/v1/chat \
   -d '{"customer_id": "CUST-123", "message": "I want a refund for order ORD-001"}'
 ```
 
-## Next Task: LLM Router Implementation
+## Completed: LLM Router Implementation
 
-### Goal
-Create an intelligent router that can dynamically choose between cloud and local LLM based on configurable criteria.
-
-### Proposed Design
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   LLM Router                        │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  Request ──► Router Logic ──┬──► Local Ollama      │
-│                             │                       │
-│                             └──► Cloud OpenAI       │
-│                                                     │
-│  Routing Criteria:                                  │
-│  - Fallback (local fails → cloud)                  │
-│  - Cost-based (prefer local, cloud for complex)    │
-│  - Latency-based (prefer fastest)                  │
-│  - Load-based (distribute based on capacity)       │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-```
-
-### Suggested Implementation Steps
-
-1. **Create `src/services/llm_router.py`**
-   - Abstract base class for routing strategies
-   - Implement routing strategies (fallback, cost-based, etc.)
-   - Health checking for each LLM endpoint
-
-2. **Update `src/config.py`**
-   - Add configuration for multiple LLM endpoints
-   - Add routing strategy selection
-   ```python
-   class LLMEndpoint(BaseModel):
-       name: str
-       url: str
-       api_key: str
-       model: str
-       priority: int
-       is_local: bool
-   ```
-
-3. **Update `src/services/llm_client.py`**
-   - Integrate with router
-   - Add retry logic with fallback
-   - Add latency/cost tracking
-
-4. **Add health check endpoint**
-   - Monitor status of all LLM backends
-   - Expose metrics (latency, success rate, cost)
-
-### Key Files to Modify
-
-| File | Purpose |
-|------|---------|
-| `src/services/llm_router.py` | NEW - Router implementation |
-| `src/services/llm_client.py` | Integrate router, multi-endpoint support |
-| `src/config.py` | Multi-endpoint configuration |
-| `docker-compose.yml` | Environment variables for routing |
-| `.env.example` | Document new configuration options |
+The router now supports multi-endpoint routing with fallback, cost, latency, and load strategies, plus health checks per backend. Metrics are exposed at `/health/llm`.
 
 ## Test Data Reference
 
@@ -184,6 +131,8 @@ Create an intelligent router that can dynamically choose between cloud and local
 curl http://localhost:8000/health
 curl http://localhost:8001/health
 curl http://localhost:8002/health
+# LLM router health
+curl http://localhost:8000/health/llm
 
 # Start a refund conversation
 curl -X POST http://localhost:8000/api/v1/chat \
@@ -213,7 +162,8 @@ RefundBot/
 │   ├── models/           # Database models
 │   ├── routers/          # API endpoints
 │   └── services/         # Business logic
-│       ├── llm_client.py       # ← Modify for router
+│       ├── llm_client.py       # LLM client with router integration
+│       ├── llm_router.py       # LLM routing + health
 │       ├── conversation_service.py
 │       ├── refund_service.py
 │       ├── orders_client.py
@@ -238,6 +188,8 @@ RefundBot/
 | LLM_API_URL | http://ollama:11434/v1 | LLM endpoint |
 | LLM_API_KEY | ollama | API key (empty for Ollama) |
 | LLM_MODEL | llama3.2:1b | Model to use |
+| LLM_ROUTER_STRATEGY | fallback | Routing strategy (single, fallback, cost, latency, load) |
+| LLM_ENDPOINTS_JSON | (empty) | JSON array of LLM endpoints for routing |
 | LOG_LEVEL | INFO | Logging level |
 
 ## Notes for Next Agent
@@ -246,6 +198,7 @@ RefundBot/
 2. Ollama model needs to be pulled separately after container starts
 3. The `.env` file contains the actual API keys - never commit it
 4. All services communicate via Docker network `refund-network`
-5. The conversation service maintains state via SQLite - consider if router decisions should be logged there
+5. The conversation service maintains state via SQLite - router metrics are tracked in memory
+6. Use `/health/llm?refresh=true` to actively probe all endpoints
 
-Good luck with the router implementation! 🚀
+See `/health/llm` for router metrics and endpoint status.

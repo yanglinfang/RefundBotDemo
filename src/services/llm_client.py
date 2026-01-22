@@ -4,11 +4,13 @@ LLM Client - Integration with OpenAI-compatible LLM API
 
 import logging
 import re
-from typing import Optional
+import time
+from typing import Dict, List, Optional
 
 from openai import AsyncOpenAI
 
-from src.config import settings
+from src.config import LLMEndpoint
+from src.services.llm_router import get_llm_router
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +31,11 @@ Respond in a friendly, professional manner. Keep responses concise."""
 
 
 class LLMClient:
-    """Client for interacting with OpenAI-compatible LLM APIs."""
+    """Client for interacting with OpenAI-compatible LLM APIs via a router."""
 
     def __init__(self):
-        self.client = AsyncOpenAI(
-            base_url=settings.llm_api_url,
-            api_key=settings.llm_api_key or "dummy-key"
-        )
-        self.model = settings.llm_model
+        self.router = get_llm_router()
+        self._clients: Dict[str, AsyncOpenAI] = {}
 
     async def analyze_refund_intent(
         self,
@@ -67,11 +66,12 @@ Only respond with the format above, nothing else."""
                 {"role": "user", "content": analysis_prompt}
             ]
 
-            response = await self.client.chat.completions.create(
-                model=self.model,
+            response = await self._chat_completion(
                 messages=messages,
                 temperature=0.1,
-                max_tokens=150
+                max_tokens=150,
+                request_type="intent_analysis",
+                context={"customer_id": customer_id, "message_chars": len(message)},
             )
 
             result_text = response.choices[0].message.content.strip()
@@ -103,7 +103,7 @@ Only respond with the format above, nothing else."""
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing intent: {e}")
+            logger.error("Error analyzing intent via LLM: %s", e)
             # Fallback to simple keyword matching
             return self._fallback_intent_analysis(message)
 
@@ -138,17 +138,18 @@ Only respond with the format above, nothing else."""
                 {"role": "user", "content": message}
             ]
 
-            response = await self.client.chat.completions.create(
-                model=self.model,
+            response = await self._chat_completion(
                 messages=messages,
                 temperature=0.7,
-                max_tokens=300
+                max_tokens=300,
+                request_type="general_response",
+                context={"history_count": len(conversation_history)},
             )
 
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
+            logger.error("Error generating response: %s", e)
             return "I apologize, but I'm having trouble processing your request right now. Please try again or contact our support team directly."
 
     async def generate_refund_confirmation(
@@ -167,20 +168,21 @@ Details:
 
 Keep it concise (2-3 sentences) and professional."""
 
-            response = await self.client.chat.completions.create(
-                model=self.model,
+            response = await self._chat_completion(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.5,
-                max_tokens=150
+                max_tokens=150,
+                request_type="refund_confirmation",
+                context={"order_id": order_id},
             )
 
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            logger.error(f"Error generating confirmation: {e}")
+            logger.error("Error generating confirmation: %s", e)
             return f"Great news! Your refund of ${amount:.2f} for order {order_id} has been processed. Your refund reference is {refund_id}. The amount should appear in your account within 5-10 business days."
 
     async def generate_refund_denial(
@@ -197,18 +199,75 @@ Details:
 
 Be understanding but clear. Offer alternatives if possible. Keep it concise."""
 
-            response = await self.client.chat.completions.create(
-                model=self.model,
+            response = await self._chat_completion(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.5,
-                max_tokens=200
+                max_tokens=200,
+                request_type="refund_denial",
+                context={"order_id": order_id},
             )
 
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            logger.error(f"Error generating denial: {e}")
+            logger.error("Error generating denial: %s", e)
             return f"I apologize, but I'm unable to process a refund for order {order_id}. {reason}. If you believe this is an error or need further assistance, please contact our support team."
+
+    async def _chat_completion(
+        self,
+        *,
+        messages: List[dict],
+        temperature: float,
+        max_tokens: int,
+        request_type: str,
+        context: Optional[dict] = None,
+    ):
+        """
+        Execute a chat completion request using the router for endpoint selection.
+        """
+        plan = self.router.get_routing_plan(
+            context={
+                "request_type": request_type,
+                **(context or {})
+            }
+        )
+        last_error: Optional[Exception] = None
+        failure_messages: List[str] = []
+
+        for endpoint in plan:
+            client = self._get_client(endpoint)
+            await self.router.mark_request_start(endpoint.name)
+            start = time.perf_counter()
+
+            try:
+                logger.info("LLM request using endpoint %s for %s", endpoint.name, request_type)
+                response = await client.chat.completions.create(
+                    model=endpoint.model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                latency_ms = (time.perf_counter() - start) * 1000
+                await self.router.record_success(endpoint.name, latency_ms)
+                return response
+            except Exception as exc:  # noqa: BLE001 - surface LLM failures
+                latency_ms = (time.perf_counter() - start) * 1000
+                await self.router.record_failure(endpoint.name, latency_ms, str(exc))
+                last_error = exc
+                failure_messages.append(f"{endpoint.name}: {exc}")
+                logger.warning("LLM request failed via %s: %s", endpoint.name, exc)
+
+        error_text = "; ".join(failure_messages) or "unknown error"
+        raise RuntimeError(f"All LLM endpoints failed ({error_text})") from last_error
+
+    def _get_client(self, endpoint: LLMEndpoint) -> AsyncOpenAI:
+        """Return/reuse an AsyncOpenAI client for the given endpoint."""
+        if endpoint.name not in self._clients:
+            self._clients[endpoint.name] = AsyncOpenAI(
+                base_url=endpoint.url,
+                api_key=endpoint.api_key or "dummy-key"
+            )
+        return self._clients[endpoint.name]

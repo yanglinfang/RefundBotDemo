@@ -4,12 +4,14 @@ Health Check Router
 
 from fastapi import APIRouter
 
+from src.services.llm_router import get_llm_router
+
 router = APIRouter()
 
 
 @router.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Base service health check."""
     return {
         "status": "healthy",
         "service": "refund-bot"
@@ -24,3 +26,10 @@ async def readiness_check():
         "status": "ready",
         "service": "refund-bot"
     }
+
+
+@router.get("/health/llm")
+async def llm_health(refresh: bool = False):
+    """Return health information for all configured LLM endpoints."""
+    router_instance = get_llm_router()
+    return await router_instance.get_health_report(refresh=refresh)
