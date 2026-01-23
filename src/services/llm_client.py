@@ -154,7 +154,8 @@ Details:
 - Refund reference: {refund_id}
 
 Keep it concise (2-3 sentences) and professional. Respond with the final confirmation text only.
-Do not preface the message with explanations like "Here is the confirmation" or include surrounding quotes."""
+Do not preface the message with explanations like "Here is the confirmation" 
+DO not include surrounding quotes."""
 
             # Use original customer message for complexity routing if provided
             routing_message = original_message or prompt
