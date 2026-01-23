@@ -34,7 +34,8 @@ env/
 *~
 
 # Claude Code
-/.claude
+.claude
+.claude/
 
 # Environment
 .env
