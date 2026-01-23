@@ -94,10 +94,10 @@ This hybrid approach gives you the **best of both worlds**: cost efficiency for 
 └─────────────────────────────────────┼────────────────────────────────────┘
                                       │ (Optional: Cloud API)
                                       ▼
-                            ┌─────────────────────┐
-                            │   OpenAI API        │
-                            │ api.openai.com/v1   │
-                            └─────────────────────┘
+                            ┌─────────────────────────┐
+                            │   Cloud API              │
+                            │ e.g. api.openai.com/v1   │
+                            └─────────────────────────┘
 ```
 
 ## Quick Start
