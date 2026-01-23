@@ -6,6 +6,9 @@ An **LLM-powered customer refund service** that demonstrates how to build an AI 
 
 Watch the demo video for a quick overview of the end-to-end experience:
 
+
+[Demo](https://github.com/user-attachments/assets/9d53e8dc-1ab9-410e-ac6d-0ba1a0fa2fec)
+
 <video src="web-ui/ui_mock/refundbot_demo.mp4" controls width="100%">
 </video>
 
