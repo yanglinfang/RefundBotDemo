@@ -4,6 +4,10 @@ An **LLM-powered customer refund service** that demonstrates how to build an AI 
 
 ## Demo
 
+Watch the demo video for a quick overview of the end-to-end experience:
+
+<video src="web-ui/ui_mock/refundbot_demo.mp4" controls width="100%"></video>
+
 ### Intelligent LLM Routing in Action
 
 RefundBot uses **complexity-based routing** to optimize cost and quality:
