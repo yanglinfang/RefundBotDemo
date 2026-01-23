@@ -57,6 +57,49 @@ In this example, an angry customer sends a long, complex message demanding escal
 
 This hybrid approach gives you the **best of both worlds**: cost efficiency for routine requests and quality assurance for complex situations.
 
+### Routing Logic: Demo vs Production
+
+The routing logic implemented in this demo uses **simple complexity scoring** based on:
+- Word count threshold (default: 40 unique words)
+- Character count threshold (default: 800 characters)
+
+This approach was chosen because it can be computed locally with zero latency and no additional API calls. However, there are many other ways to determine routing:
+
+| Method | Pros | Cons |
+|--------|------|------|
+| **Word/char count** (this demo) | Fast, free, no dependencies | Doesn't understand semantic complexity |
+| **Keyword detection** | Can catch specific intents (e.g., "manager", "lawsuit") | Requires maintaining keyword lists |
+| **Sentiment analysis** | Routes angry customers to better models | Requires ML model or API call |
+| **Topic classification** | Routes by domain expertise | Requires training data |
+| **LLM-based classifier** | Most accurate complexity assessment | Adds latency and cost |
+
+**For production use**, you should modify the routing logic to suit your specific needs. Consider factors like:
+- Your customer demographics and typical request patterns
+- Which topics require nuanced responses vs. templated answers
+- Regulatory requirements for certain types of requests
+- Your tolerance for routing errors in either direction
+
+### Cost Considerations
+
+The demo assumes "local = free, cloud = costs money," but real-world economics are more nuanced:
+
+| Factor | Local Ollama | Cloud API |
+|--------|--------------|-----------|
+| **Per-request cost** | $0 (after hardware) | ~$0.001-0.01 per request |
+| **Infrastructure** | GPU server required | None |
+| **Maintenance** | Model updates, monitoring | Managed by provider |
+| **Scaling** | Hardware-limited | Auto-scales |
+| **Latency** | Network-local | Internet round-trip |
+
+**The true cost comparison depends on:**
+- Your request volume (high volume favors local)
+- GPU hardware costs (owned vs. rented)
+- Electricity costs in your region
+- DevOps overhead for self-hosting
+- Cloud provider pricing (varies significantly)
+
+For low-volume applications, cloud-only may be cheaper. For high-volume applications, the hybrid approach or local-only may provide significant savings.
+
 ---
 
 ## Features
@@ -194,6 +237,10 @@ Messages are analyzed for complexity before routing:
 
 - **Simple messages** (< 40 unique words, < 800 chars) → Local Ollama
 - **Complex messages** (>= 40 unique words or >= 800 chars) → Cloud API
+
+This demo uses a lightweight, local-friendly complexity scoring (unique word count + character length)
+purely to illustrate routing decisions. In production deployments you should adapt the routing logic to
+your business needs—e.g., combine semantic intent, account tier, cost limits, or real-time performance metrics.
 
 Configure thresholds via environment variables:
 - `LLM_COMPLEXITY_THRESHOLD` - Unique word count threshold (default: 40)
@@ -386,12 +433,10 @@ docker compose logs -f refund-bot
 ```
 
 
-### Known risk of this demo
+## Additional Considerations
 
-#### Risk: No protection against:
-* Brute force attacks
-* API abuse
-* Cost explosion from excessive LLM calls
+- **Routing customization**: Complexity-based routing in this demo is intentionally simple for local computation. Production systems should layer in richer signals—such as user tier, sentiment, real-time latency, or cost quotas—to better match business goals.
+- **Cost trade-offs**: Running local Ollama requires hardware (CPU/GPU, RAM, storage) while cloud APIs incur per-token charges. Evaluate the full cost of ownership for both approaches (OpenAI, Claude, etc.) before deciding on your routing policy.
 
 ## License
 
