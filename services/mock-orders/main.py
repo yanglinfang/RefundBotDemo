@@ -108,10 +108,10 @@ def _seed_mock_orders():
                 product_id="PROD-D4",
                 product_name="Laptop Stand",
                 quantity=1,
-                unit_price=49.99
+                unit_price=349.99
             )
         ],
-        total_amount=49.99,
+        total_amount=349.99,
         created_at=now - timedelta(hours=2),
         updated_at=now - timedelta(hours=2)
     )

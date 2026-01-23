@@ -99,7 +99,7 @@ The debug panel fetches stats from `/debug/stats` and displays per-request info 
 |----------|----------|--------|--------|-----------------|
 | ORD-001 | CUST-123 | delivered | $79.99 | Yes |
 | ORD-002 | CUST-123 | shipped | $56.97 | Yes |
-| ORD-003 | CUST-456 | pending | $49.99 | No (pending status) |
+| ORD-003 | CUST-456 | pending | $349.99 | No (pending status) |
 | ORD-004 | CUST-789 | delivered | $129.99 | No (outside 30-day window) |
 
 ### Test Scenarios

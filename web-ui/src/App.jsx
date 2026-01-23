@@ -2,11 +2,19 @@ import { useState, useRef, useEffect } from 'react'
 
 const API_BASE = '/api/v1'
 
+// Product images mapping
+const PRODUCT_IMAGES = {
+  headphones: '/ui_mock/headphone.JPG',
+  cable: '/ui_mock/charging_cable.JPG',
+  watch: '/ui_mock/watch.JPG',
+  stand: '/ui_mock/computer_stand.JPG'
+}
+
 // Test order data
 const TEST_ORDERS = [
   {
     id: 'ORD-001',
-    date: 'June 1, 2024',
+    date: 'Jan 1, 2026',
     total: 79.99,
     items: [
       {
@@ -21,7 +29,7 @@ const TEST_ORDERS = [
   },
   {
     id: 'ORD-002',
-    date: 'June 5, 2024',
+    date: 'Jan 5, 2026',
     total: 56.97,
     items: [
       {
@@ -36,12 +44,12 @@ const TEST_ORDERS = [
   },
   {
     id: 'ORD-003',
-    date: 'June 10, 2024',
-    total: 49.99,
+    date: 'Jan 10, 2026',
+    total: 349.99,
     items: [
       {
         name: 'Smart Watch',
-        price: 49.99,
+        price: 349.99,
         qty: 1,
         image: 'watch'
       }
@@ -52,7 +60,7 @@ const TEST_ORDERS = [
   },
   {
     id: 'ORD-004',
-    date: 'March 15, 2024',
+    date: 'Jan 15, 2026',
     total: 129.99,
     items: [
       {
@@ -68,50 +76,12 @@ const TEST_ORDERS = [
   }
 ]
 
-// Product icon components
-const ProductIcon = ({ type }) => {
-  const icons = {
-    headphones: (
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 36v12a4 4 0 004 4h4V32h-4a4 4 0 00-4 4z" fill="#333"/>
-        <path d="M48 36v12a4 4 0 01-4 4h-4V32h4a4 4 0 014 4z" fill="#333"/>
-        <path d="M12 32c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#333" strokeWidth="4" fill="none"/>
-        <rect x="18" y="30" width="8" height="24" rx="2" fill="#555"/>
-        <rect x="38" y="30" width="8" height="24" rx="2" fill="#555"/>
-      </svg>
-    ),
-    cable: (
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="8" y="24" width="20" height="16" rx="3" fill="#ddd" stroke="#999" strokeWidth="2"/>
-        <rect x="12" y="30" width="4" height="4" fill="#333"/>
-        <rect x="20" y="30" width="4" height="4" fill="#333"/>
-        <path d="M28 32h8" stroke="#999" strokeWidth="3"/>
-        <path d="M36 32c8 0 12-4 12-4" stroke="#999" strokeWidth="3"/>
-        <rect x="46" y="26" width="10" height="12" rx="2" fill="#999"/>
-      </svg>
-    ),
-    watch: (
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="18" y="8" width="28" height="12" rx="2" fill="#333"/>
-        <rect x="18" y="44" width="28" height="12" rx="2" fill="#333"/>
-        <rect x="14" y="16" width="36" height="32" rx="6" fill="#1a1a1a"/>
-        <circle cx="32" cy="32" r="12" fill="#2a2a2a"/>
-        <circle cx="32" cy="32" r="10" stroke="#4a9" strokeWidth="2"/>
-        <path d="M32 24v8l6 4" stroke="#4a9" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
-    stand: (
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 48h40" stroke="#999" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M32 48V38" stroke="#999" strokeWidth="3"/>
-        <path d="M20 38h24" stroke="#999" strokeWidth="2"/>
-        <rect x="8" y="12" width="48" height="28" rx="2" fill="#ccc" stroke="#999" strokeWidth="2"/>
-        <rect x="12" y="16" width="40" height="20" fill="#e8e8e8"/>
-      </svg>
-    )
-  }
-  return <div className="item-image">{icons[type] || <span className="placeholder-icon">?</span>}</div>
-}
+// Product image component
+const ProductImage = ({ type, name }) => (
+  <div className="item-image">
+    <img src={PRODUCT_IMAGES[type]} alt={name} />
+  </div>
+)
 
 // Logo component
 const ByteGearLogo = () => (
@@ -322,7 +292,7 @@ function App() {
               <div className="order-items">
                 {order.items.map((item, idx) => (
                   <div key={idx} className="order-item">
-                    <ProductIcon type={item.image} />
+                    <ProductImage type={item.image} name={item.name} />
                     <div className="item-details">
                       <h4>{item.name}</h4>
                       <div className="item-qty">Qty: {item.qty}</div>
@@ -369,7 +339,7 @@ function App() {
           <a href="#">TERMS OF SERVICE</a>
         </div>
         <div className="footer-copyright">
-          &copy; 2024 BYTE GEAR
+          &copy; 2026 BYTE GEAR
         </div>
       </footer>
 
@@ -439,7 +409,7 @@ function App() {
               />
               <button type="submit" disabled={loading || !input.trim()}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 12l9-9v6h9v6h-9v6z" transform="rotate(-90 12 12)"/>
+                  <path d="M12 19V5M5 12l7-7 7 7"/>
                 </svg>
               </button>
             </form>

@@ -98,7 +98,7 @@ def _seed_mock_payments():
     MOCK_PAYMENTS["PAY-003"] = Payment(
         payment_id="PAY-003",
         order_id="ORD-003",
-        amount=49.99,
+        amount=349.99,
         status=PaymentStatus.PENDING,
         payment_method="paypal",
         created_at=now,
