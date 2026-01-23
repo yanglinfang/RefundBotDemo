@@ -46,6 +46,7 @@ env/
 *.sqlite
 *.sqlite3
 data/*.db
+data/debug_stats.json
 
 # Logs
 *.log

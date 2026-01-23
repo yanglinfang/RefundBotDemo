@@ -37,8 +37,8 @@ class ChatResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 @limiter.limit("10/minute")
 async def chat(
-    request: ChatRequest,
-    http_request: Request,
+    chat_request: ChatRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -47,15 +47,15 @@ async def chat(
     The bot uses an LLM to understand the user's request and
     can automatically process refund requests.
     """
-    logger.info(f"Chat request from customer: {request.customer_id}")
+    logger.info(f"Chat request from customer: {chat_request.customer_id}")
 
     service = ConversationService(db)
 
     try:
         result = await service.process_message(
-            customer_id=request.customer_id,
-            message=request.message,
-            conversation_id=request.conversation_id
+            customer_id=chat_request.customer_id,
+            message=chat_request.message,
+            conversation_id=chat_request.conversation_id
         )
         return ChatResponse(**result)
     except Exception as e:

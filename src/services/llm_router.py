@@ -110,7 +110,22 @@ class LLMRouter:
         context = context or {}
         available = self._filter_available_endpoints()
         candidates = available if available else list(self.endpoints)
+
+        logger.debug(
+            "Routing decision: available=%s, all=%s, context=%s",
+            [ep.name for ep in available],
+            [ep.name for ep in self.endpoints],
+            {k: v for k, v in context.items() if k != "message"},
+        )
+
         candidates = self._apply_complexity_routing(candidates, context)
+
+        logger.debug(
+            "After complexity routing: candidates=%s (is_complex=%s)",
+            [ep.name for ep in candidates],
+            context.get("complexity_score", 0) >= self.complexity_threshold
+            or context.get("message_chars", 0) >= self.complexity_char_threshold,
+        )
 
         if self.strategy == RoutingStrategy.SINGLE:
             endpoint = self._select_primary(candidates)

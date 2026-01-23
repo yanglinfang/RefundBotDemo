@@ -47,21 +47,21 @@ class RefundRequestResponse(BaseModel):
 @router.post("/refunds", response_model=RefundRequestResponse)
 @limiter.limit("20/minute")
 async def create_refund(
-    request: RefundRequestCreate,
-    http_request: Request,
+    refund_request: RefundRequestCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new refund request."""
-    logger.info(f"Creating refund request for order: {request.order_id}")
+    logger.info(f"Creating refund request for order: {refund_request.order_id}")
 
     service = RefundService(db)
 
     try:
         refund = await service.create_refund_request(
-            order_id=request.order_id,
-            customer_id=request.customer_id,
-            amount=request.amount,
-            reason=request.reason
+            order_id=refund_request.order_id,
+            customer_id=refund_request.customer_id,
+            amount=refund_request.amount,
+            reason=refund_request.reason
         )
         return RefundRequestResponse(
             id=refund.id,
@@ -86,7 +86,7 @@ async def create_refund(
 @limiter.limit("30/minute")
 async def get_refund(
     refund_id: str,
-    http_request: Request,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Get a refund request by ID."""
@@ -114,7 +114,7 @@ async def get_refund(
 @limiter.limit("15/minute")
 async def process_refund(
     refund_id: str,
-    http_request: Request,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Process a pending refund request."""
