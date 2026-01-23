@@ -5,12 +5,13 @@ Conversation API Router for LLM-powered interactions
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.services.conversation_service import ConversationService
+from src.limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +20,9 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     """Schema for chat request."""
-    message: str
+    message: str = Field(..., max_length=10000)
     conversation_id: Optional[str] = None
-    customer_id: str
+    customer_id: str = Field(..., pattern=r"^CUST-[A-Z0-9]+$")
 
 
 class ChatResponse(BaseModel):
@@ -34,8 +35,10 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
+@limiter.limit("10/minute")
 async def chat(
     request: ChatRequest,
+    http_request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """

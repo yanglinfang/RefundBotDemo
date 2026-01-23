@@ -5,13 +5,14 @@ Refund API Router
 from typing import Optional
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.services.refund_service import RefundService
 from src.models.refund import RefundStatus
+from src.limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,10 @@ class RefundRequestResponse(BaseModel):
 
 
 @router.post("/refunds", response_model=RefundRequestResponse)
+@limiter.limit("20/minute")
 async def create_refund(
     request: RefundRequestCreate,
+    http_request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new refund request."""
@@ -80,8 +83,10 @@ async def create_refund(
 
 
 @router.get("/refunds/{refund_id}", response_model=RefundRequestResponse)
+@limiter.limit("30/minute")
 async def get_refund(
     refund_id: str,
+    http_request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Get a refund request by ID."""
@@ -106,8 +111,10 @@ async def get_refund(
 
 
 @router.post("/refunds/{refund_id}/process")
+@limiter.limit("15/minute")
 async def process_refund(
     refund_id: str,
+    http_request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Process a pending refund request."""
