@@ -1,11 +1,89 @@
 {
-  "started_at": 1769155194.2168934,
-  "total_requests": 0,
-  "local_requests": 0,
-  "cloud_requests": 0,
-  "total_tokens": 0,
-  "total_latency_ms": 0.0,
-  "endpoints": {},
-  "recent_requests": [],
-  "last_request": null
+  "started_at": 1769155537.6481102,
+  "total_requests": 3,
+  "local_requests": 2,
+  "cloud_requests": 1,
+  "total_tokens": 846,
+  "total_latency_ms": 19527.277249959297,
+  "endpoints": {
+    "local": {
+      "name": "local",
+      "url": "http://ollama:11434/v1",
+      "model": "llama3.2:1b",
+      "is_local": true,
+      "total_requests": 2,
+      "successful_requests": 2,
+      "failed_requests": 0,
+      "total_latency_ms": 17054.666213982273,
+      "total_tokens": 555,
+      "requests_by_type": {
+        "refund_confirmation": 1,
+        "refund_denial": 1
+      }
+    },
+    "cloud": {
+      "name": "cloud",
+      "url": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "is_local": false,
+      "total_requests": 1,
+      "successful_requests": 1,
+      "failed_requests": 0,
+      "total_latency_ms": 2472.6110359770246,
+      "total_tokens": 291,
+      "requests_by_type": {
+        "refund_denial": 1
+      }
+    }
+  },
+  "recent_requests": [
+    {
+      "timestamp": 1769155579.1043715,
+      "endpoint_name": "local",
+      "endpoint_url": "http://ollama:11434/v1",
+      "model": "llama3.2:1b",
+      "is_local": true,
+      "request_type": "refund_confirmation",
+      "latency_ms": 11222.330346994568,
+      "tokens": 282,
+      "success": true,
+      "error": null
+    },
+    {
+      "timestamp": 1769155618.2266018,
+      "endpoint_name": "local",
+      "endpoint_url": "http://ollama:11434/v1",
+      "model": "llama3.2:1b",
+      "is_local": true,
+      "request_type": "refund_denial",
+      "latency_ms": 5832.335866987705,
+      "tokens": 273,
+      "success": true,
+      "error": null
+    },
+    {
+      "timestamp": 1769155656.4139583,
+      "endpoint_name": "cloud",
+      "endpoint_url": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "is_local": false,
+      "request_type": "refund_denial",
+      "latency_ms": 2472.6110359770246,
+      "tokens": 291,
+      "success": true,
+      "error": null
+    }
+  ],
+  "last_request": {
+    "timestamp": 1769155656.4139583,
+    "endpoint_name": "cloud",
+    "endpoint_url": "https://api.openai.com/v1",
+    "model": "gpt-4o-mini",
+    "is_local": false,
+    "request_type": "refund_denial",
+    "latency_ms": 2472.6110359770246,
+    "tokens": 291,
+    "success": true,
+    "error": null
+  }
 }
