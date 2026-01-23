@@ -6,7 +6,9 @@ An **LLM-powered customer refund service** that demonstrates how to build an AI 
 
 Watch the demo video for a quick overview of the end-to-end experience:
 
-![RefundBotDemo](web-ui/ui_mock/refundbot_demo.mp4)
+<video src="web-ui/ui_mock/refundbot_demo.mp4" controls width="100%">
+  Sorry, your browser doesn't support embedded videos. You can <a href="web-ui/ui_mock/refundbot_demo.mp4">download the demo here</a>.
+</video>
 
 ### Intelligent LLM Routing in Action
 
