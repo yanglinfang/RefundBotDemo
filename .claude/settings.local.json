@@ -3,7 +3,8 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(docker compose:*)",
-      "Bash(ollama:*)"
+      "Bash(ollama:*)",
+      "Bash(bash scripts/test_refund_flow.sh:*)"
     ]
   }
 }
