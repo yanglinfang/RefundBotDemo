@@ -37,8 +37,8 @@ class OrdersClient:
             logger.error(f"Error fetching order {order_id}: {e}")
             raise
 
-    async def list_orders(self, customer_id: Optional[str] = None) -> list[dict]:
-        """List orders, optionally filtered by customer."""
+    async def get_user_order_history(self, customer_id: Optional[str] = None) -> list[dict]:
+        """Retrieve order history, optionally filtered by customer."""
         try:
             async with httpx.AsyncClient() as client:
                 params = {}
@@ -55,7 +55,7 @@ class OrdersClient:
                 return response.json()
 
         except httpx.HTTPError as e:
-            logger.error(f"Error listing orders: {e}")
+            logger.error(f"Error retrieving order history: {e}")
             raise
 
     async def health_check(self) -> bool:

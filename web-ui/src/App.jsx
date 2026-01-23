@@ -97,7 +97,7 @@ function App() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [customerId] = useState('CUST-123')
+  const [customerId] = useState('alex@example.com')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [debugStats, setDebugStats] = useState({
     lastAgent: '-',

@@ -153,7 +153,8 @@ Details:
 - Refund amount: ${amount:.2f}
 - Refund reference: {refund_id}
 
-Keep it concise (2-3 sentences) and professional."""
+Keep it concise (2-3 sentences) and professional. Respond with the final confirmation text only.
+Do not preface the message with explanations like "Here is the confirmation" or include surrounding quotes."""
 
             # Use original customer message for complexity routing if provided
             routing_message = original_message or prompt

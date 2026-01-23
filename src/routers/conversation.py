@@ -6,12 +6,13 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.services.conversation_service import ConversationService
 from src.limiter import limiter
+from src.utils.customer_identity import is_customer_id, is_email
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,14 @@ class ChatRequest(BaseModel):
     """Schema for chat request."""
     message: str = Field(..., max_length=10000)
     conversation_id: Optional[str] = None
-    customer_id: str = Field(..., pattern=r"^CUST-[A-Z0-9]+$")
+    customer_id: str = Field(..., min_length=3, max_length=255)
+
+    @field_validator("customer_id")
+    @classmethod
+    def validate_customer_identifier(cls, value: str) -> str:
+        if is_customer_id(value) or is_email(value):
+            return value
+        raise ValueError("Customer ID must be a CUST- identifier or a valid email address")
 
 
 class ChatResponse(BaseModel):

@@ -145,3 +145,25 @@ class TestRefundService:
 
         assert result["eligible"] is False
         assert "pending" in result["reason"]
+
+    @pytest.mark.asyncio
+    async def test_check_eligibility_with_email_identifier(
+        self,
+        mock_db,
+        mock_orders_client,
+        sample_order
+    ):
+        """Ensure email identifiers are resolved before eligibility checks."""
+        mock_orders_client.get_order = AsyncMock(return_value=sample_order)
+
+        service = RefundService(mock_db)
+        service.orders_client = mock_orders_client
+        service._resolve_customer_identifier = AsyncMock(return_value="CUST-123")
+
+        result = await service.check_refund_eligibility(
+            order_id="ORD-001",
+            customer_id="alex@example.com"
+        )
+
+        service._resolve_customer_identifier.assert_awaited_once_with("alex@example.com")
+        assert result["eligible"] is True

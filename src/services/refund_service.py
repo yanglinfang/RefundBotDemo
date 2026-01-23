@@ -2,8 +2,8 @@
 Refund Service - Business logic for refund processing
 """
 
-import uuid
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -11,9 +11,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
+from src.models.customer import CustomerProfile
 from src.models.refund import RefundRequest, RefundStatus
 from src.services.orders_client import OrdersClient
 from src.services.payments_client import PaymentsClient
+from src.utils.customer_identity import is_email
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +38,15 @@ class RefundService:
         """
         Create a new refund request after validating eligibility.
         """
+        resolved_customer_id = await self._resolve_customer_identifier(customer_id)
+
         # Fetch order details
         order = await self.orders_client.get_order(order_id)
         if not order:
             raise ValueError(f"Order {order_id} not found")
 
         # Validate customer owns the order
-        if order["customer_id"] != customer_id:
+        if order["customer_id"] != resolved_customer_id:
             raise ValueError("Order does not belong to this customer")
 
         # Validate order status
@@ -68,7 +72,7 @@ class RefundService:
         refund = RefundRequest(
             id=f"RFR-{uuid.uuid4().hex[:8].upper()}",
             order_id=order_id,
-            customer_id=customer_id,
+            customer_id=resolved_customer_id,
             amount=refund_amount,
             reason=reason,
             status=RefundStatus.PENDING,
@@ -161,12 +165,16 @@ class RefundService:
 
         Returns eligibility status and reason.
         """
+        try:
+            resolved_customer_id = await self._resolve_customer_identifier(customer_id)
+        except ValueError as exc:
+            return {"eligible": False, "reason": str(exc)}
         order = await self.orders_client.get_order(order_id)
 
         if not order:
             return {"eligible": False, "reason": "Order not found"}
 
-        if order["customer_id"] != customer_id:
+        if order["customer_id"] != resolved_customer_id:
             return {"eligible": False, "reason": "Order does not belong to this customer"}
 
         if order["status"] not in ["delivered", "shipped"]:
@@ -187,3 +195,31 @@ class RefundService:
             "reason": "Order is eligible for refund",
             "order": order
         }
+
+    async def _resolve_customer_identifier(self, customer_identifier: str) -> str:
+        """
+        Normalize a customer identifier. When an email is provided, look up the
+        canonical customer ID stored in the database.
+        """
+        if not customer_identifier or not customer_identifier.strip():
+            raise ValueError("Customer identifier is required")
+
+        identifier = customer_identifier.strip()
+        if is_email(identifier):
+            customer = await self._lookup_customer_by_email(identifier)
+            if not customer:
+                raise ValueError(f"No customer found for email {identifier}")
+            return customer.id
+
+        return identifier
+
+    async def _lookup_customer_by_email(
+        self,
+        email: str
+    ) -> Optional[CustomerProfile]:
+        """Look up a customer profile by email address."""
+        normalized_email = email.strip().lower()
+        result = await self.db.execute(
+            select(CustomerProfile).where(CustomerProfile.email == normalized_email)
+        )
+        return result.scalar_one_or_none()
