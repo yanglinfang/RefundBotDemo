@@ -193,6 +193,15 @@ async def cancel_order(order_id: str):
     return {"message": f"Order {order_id} cancelled successfully"}
 
 
+@app.post("/reset")
+async def reset_data():
+    """Reset mock data to initial state (for testing)."""
+    logger.info("Resetting mock orders data")
+    MOCK_ORDERS.clear()
+    _seed_mock_orders()
+    return {"status": "reset", "orders_count": len(MOCK_ORDERS)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

@@ -49,87 +49,54 @@ class LLMClient:
         """
         Analyze a message to determine if it's a refund request.
 
+        Uses local keyword matching - no LLM call needed for intent detection.
         Returns intent classification and extracted entities.
         """
-        analysis_prompt = f"""Analyze this customer message and determine if they are requesting a refund.
+        # Use simple local keyword matching - fast and reliable
+        return self._local_intent_analysis(message)
 
-Customer message: "{message}"
+    def _local_intent_analysis(self, message: str) -> dict:
+        """
+        Local keyword-based intent analysis - no LLM call needed.
 
-Respond in this exact format:
-INTENT: [refund_request OR general_inquiry OR other]
-ORDER_ID: [extracted order ID if mentioned, or NONE]
-REASON: [brief reason for refund if mentioned, or NONE]
-
-Only respond with the format above, nothing else."""
-
-        try:
-            messages = [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                *conversation_history[-5:],  # Include recent history
-                {"role": "user", "content": analysis_prompt}
-            ]
-
-            response = await self._chat_completion(
-                messages=messages,
-                temperature=0.1,
-                max_tokens=150,
-                request_type="intent_analysis",
-                context={
-                    "customer_id": customer_id,
-                    "message_chars": len(message),
-                    "message": message,
-                },
-            )
-
-            result_text = response.choices[0].message.content.strip()
-
-            # Parse the response
-            intent = "other"
-            order_id = None
-            reason = None
-
-            if "INTENT:" in result_text:
-                intent_match = re.search(r"INTENT:\s*(\w+)", result_text)
-                if intent_match:
-                    intent = intent_match.group(1).lower()
-
-            if "ORDER_ID:" in result_text:
-                order_match = re.search(r"ORDER_ID:\s*(ORD-\w+|NONE)", result_text)
-                if order_match and order_match.group(1) != "NONE":
-                    order_id = order_match.group(1)
-
-            if "REASON:" in result_text:
-                reason_match = re.search(r"REASON:\s*(.+?)(?:\n|$)", result_text)
-                if reason_match and reason_match.group(1).strip() != "NONE":
-                    reason = reason_match.group(1).strip()
-
-            return {
-                "intent": intent,
-                "order_id": order_id,
-                "reason": reason
-            }
-
-        except Exception as e:
-            logger.error("Error analyzing intent via LLM: %s", e)
-            # Fallback to simple keyword matching
-            return self._fallback_intent_analysis(message)
-
-    def _fallback_intent_analysis(self, message: str) -> dict:
-        """Simple keyword-based fallback for intent analysis."""
+        Detects refund intent and extracts order ID using simple pattern matching.
+        """
         message_lower = message.lower()
 
         # Check for refund keywords
-        refund_keywords = ["refund", "return", "money back", "cancel order"]
+        refund_keywords = ["refund", "return", "money back", "cancel order", "get my money"]
         is_refund = any(kw in message_lower for kw in refund_keywords)
 
         # Extract order ID
-        order_match = re.search(r"ORD-\w+", message, re.IGNORECASE)
+        order_match = re.search(r"ORD-[A-Z0-9]+", message, re.IGNORECASE)
         order_id = order_match.group(0).upper() if order_match else None
+
+        # Try to extract reason from common patterns
+        reason = None
+        if is_refund:
+            reason_patterns = [
+                r"because\s+(.+?)(?:\.|$)",
+                r"reason[:\s]+(.+?)(?:\.|$)",
+                r"due to\s+(.+?)(?:\.|$)",
+            ]
+            for pattern in reason_patterns:
+                reason_match = re.search(pattern, message_lower)
+                if reason_match:
+                    reason = reason_match.group(1).strip()
+                    break
+            if not reason:
+                reason = "Customer requested refund"
+
+        logger.debug(
+            "Local intent analysis: intent=%s, order_id=%s",
+            "refund_request" if is_refund else "general_inquiry",
+            order_id,
+        )
 
         return {
             "intent": "refund_request" if is_refund else "general_inquiry",
             "order_id": order_id,
-            "reason": "Customer requested refund" if is_refund else None
+            "reason": reason
         }
 
     async def generate_response(
@@ -167,7 +134,8 @@ Only respond with the format above, nothing else."""
         self,
         order_id: str,
         amount: float,
-        refund_id: str
+        refund_id: str,
+        original_message: Optional[str] = None,
     ) -> str:
         """Generate a confirmation message for a successful refund."""
         try:
@@ -179,6 +147,8 @@ Details:
 
 Keep it concise (2-3 sentences) and professional."""
 
+            # Use original customer message for complexity routing if provided
+            routing_message = original_message or prompt
             response = await self._chat_completion(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -187,7 +157,7 @@ Keep it concise (2-3 sentences) and professional."""
                 temperature=0.5,
                 max_tokens=150,
                 request_type="refund_confirmation",
-                context={"order_id": order_id, "message": prompt, "message_chars": len(prompt)},
+                context={"order_id": order_id, "message": routing_message, "message_chars": len(routing_message)},
             )
 
             return response.choices[0].message.content.strip()
@@ -199,7 +169,8 @@ Keep it concise (2-3 sentences) and professional."""
     async def generate_refund_denial(
         self,
         order_id: str,
-        reason: str
+        reason: str,
+        original_message: Optional[str] = None,
     ) -> str:
         """Generate a message explaining why a refund cannot be processed."""
         try:
@@ -210,6 +181,8 @@ Details:
 
 Be understanding but clear. Offer alternatives if possible. Keep it concise."""
 
+            # Use original customer message for complexity routing if provided
+            routing_message = original_message or prompt
             response = await self._chat_completion(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -218,7 +191,7 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 temperature=0.5,
                 max_tokens=200,
                 request_type="refund_denial",
-                context={"order_id": order_id, "message": prompt, "message_chars": len(prompt)},
+                context={"order_id": order_id, "message": routing_message, "message_chars": len(routing_message)},
             )
 
             return response.choices[0].message.content.strip()
@@ -246,6 +219,14 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 context["complexity_score"] = self._compute_complexity_score(text)
                 context.setdefault("unique_words", context["complexity_score"])
                 context.setdefault("message_chars", len(text))
+
+        logger.info(
+            "Routing context: complexity_score=%s, message_chars=%s, threshold=%s, char_threshold=%s",
+            context.get("complexity_score"),
+            context.get("message_chars"),
+            self.router.complexity_threshold,
+            self.router.complexity_char_threshold,
+        )
 
         plan = self.router.get_routing_plan(
             context={

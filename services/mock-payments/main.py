@@ -224,6 +224,16 @@ async def list_refunds_by_order(order_id: str):
     return refunds
 
 
+@app.post("/reset")
+async def reset_data():
+    """Reset mock data to initial state (for testing)."""
+    logger.info("Resetting mock payments data")
+    MOCK_PAYMENTS.clear()
+    MOCK_REFUNDS.clear()
+    _seed_mock_payments()
+    return {"status": "reset", "payments_count": len(MOCK_PAYMENTS), "refunds_count": len(MOCK_REFUNDS)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8002)

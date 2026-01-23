@@ -86,17 +86,20 @@ class ConversationService:
                     response = await self.llm_client.generate_refund_confirmation(
                         order_id=order_id,
                         amount=refund.amount,
-                        refund_id=refund.id
+                        refund_id=refund.id,
+                        original_message=message,
                     )
                 except ValueError as e:
                     response = await self.llm_client.generate_refund_denial(
                         order_id=order_id,
-                        reason=str(e)
+                        reason=str(e),
+                        original_message=message,
                     )
             else:
                 response = await self.llm_client.generate_refund_denial(
                     order_id=order_id,
-                    reason=eligibility["reason"]
+                    reason=eligibility["reason"],
+                    original_message=message,
                 )
         else:
             # Generate general response

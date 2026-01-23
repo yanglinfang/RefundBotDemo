@@ -118,14 +118,22 @@ class LLMRouter:
             {k: v for k, v in context.items() if k != "message"},
         )
 
+        # Check if message is complex (exceeds thresholds)
+        is_complex = self._is_complex_message(context)
+
         candidates = self._apply_complexity_routing(candidates, context)
 
         logger.debug(
             "After complexity routing: candidates=%s (is_complex=%s)",
             [ep.name for ep in candidates],
-            context.get("complexity_score", 0) >= self.complexity_threshold
-            or context.get("message_chars", 0) >= self.complexity_char_threshold,
+            is_complex,
         )
+
+        # If message is complex, complexity routing takes precedence - return directly
+        # This ensures cloud endpoints are tried first for complex messages
+        if is_complex:
+            logger.info("Complex message detected - routing to cloud endpoint first")
+            return candidates
 
         if self.strategy == RoutingStrategy.SINGLE:
             endpoint = self._select_primary(candidates)
@@ -171,6 +179,20 @@ class LLMRouter:
             key=lambda ep: (ep.priority, not ep.is_local),
         )
         return sorted_eps or candidates
+
+    def _is_complex_message(self, context: dict) -> bool:
+        """Check if the message exceeds complexity thresholds."""
+        complexity_score = context.get("complexity_score")
+        message_chars = context.get("message_chars")
+        unique_words = context.get("unique_words")
+
+        if isinstance(complexity_score, int) and complexity_score >= self.complexity_threshold:
+            return True
+        if isinstance(unique_words, int) and unique_words >= self.complexity_threshold:
+            return True
+        if isinstance(message_chars, int) and message_chars >= self.complexity_char_threshold:
+            return True
+        return False
 
     def _select_primary(self, candidates: List[LLMEndpoint]) -> LLMEndpoint:
         """Select a single endpoint for the SINGLE strategy."""
