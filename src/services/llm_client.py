@@ -12,6 +12,7 @@ from openai import AsyncOpenAI
 
 from src.config import LLMEndpoint, settings
 from src.services.llm_router import get_llm_router
+from src.services.debug_stats import get_debug_stats
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class LLMClient:
     def __init__(self):
         self.router = get_llm_router()
         self._clients: Dict[str, AsyncOpenAI] = {}
+        self._last_debug: Optional[dict] = None
 
     async def analyze_refund_intent(
         self,
@@ -277,10 +279,49 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 )
                 latency_ms = (time.perf_counter() - start) * 1000
                 await self.router.record_success(endpoint.name, latency_ms)
+
+                tokens = getattr(getattr(response, "usage", None), "total_tokens", None)
+                self._last_debug = {
+                    "endpoint": endpoint.name,
+                    "endpoint_url": endpoint.url,
+                    "is_local": endpoint.is_local,
+                    "model": endpoint.model,
+                    "latency_ms": round(latency_ms, 2),
+                    "tokens": tokens,
+                    "request_type": request_type,
+                }
+
+                # Record to debug stats service
+                debug_stats = get_debug_stats()
+                await debug_stats.record_request(
+                    endpoint_name=endpoint.name,
+                    endpoint_url=endpoint.url,
+                    model=endpoint.model,
+                    is_local=endpoint.is_local,
+                    request_type=request_type,
+                    latency_ms=latency_ms,
+                    tokens=tokens,
+                    success=True,
+                )
+
                 return response
             except Exception as exc:  # noqa: BLE001 - surface LLM failures
                 latency_ms = (time.perf_counter() - start) * 1000
                 await self.router.record_failure(endpoint.name, latency_ms, str(exc))
+
+                # Record failure to debug stats
+                debug_stats = get_debug_stats()
+                await debug_stats.record_request(
+                    endpoint_name=endpoint.name,
+                    endpoint_url=endpoint.url,
+                    model=endpoint.model,
+                    is_local=endpoint.is_local,
+                    request_type=request_type,
+                    latency_ms=latency_ms,
+                    success=False,
+                    error=str(exc),
+                )
+
                 last_error = exc
                 failure_messages.append(f"{endpoint.name}: {exc}")
                 logger.warning("LLM request failed via %s: %s", endpoint.name, exc)
@@ -296,6 +337,10 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 api_key=endpoint.api_key or "dummy-key"
             )
         return self._clients[endpoint.name]
+
+    def get_last_debug(self) -> Optional[dict]:
+        """Return the most recent LLM request metadata."""
+        return self._last_debug
 
     @staticmethod
     def _compute_complexity_score(text: str) -> int:

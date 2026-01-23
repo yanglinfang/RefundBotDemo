@@ -32,6 +32,8 @@ env/
 *.swp
 *.swo
 *~
+
+# Claude Code
 .claude/
 
 # Environment
@@ -59,3 +61,8 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Web UI
+web-ui/node_modules/
+web-ui/dist/
+web-ui/package-lock.json

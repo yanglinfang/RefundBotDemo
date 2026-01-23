@@ -112,7 +112,8 @@ class ConversationService:
             "conversation_id": conversation.id,
             "response": response,
             "refund_initiated": refund_initiated,
-            "refund_id": refund_id
+            "refund_id": refund_id,
+            "llm_debug": self.llm_client.get_last_debug(),
         }
 
     async def get_conversation(self, conversation_id: str) -> Optional[dict]:

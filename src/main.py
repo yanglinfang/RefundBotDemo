@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
 from src.database import init_db
 from src.routers import refund, health, conversation
+from src.services.debug_stats import initialize_debug_stats, cleanup_debug_stats
 
 # Configure logging
 logging.basicConfig(
@@ -29,9 +30,13 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Refund Bot service...")
     await init_db()
     logger.info("Database initialized")
+    await initialize_debug_stats()
+    logger.info("Debug stats initialized")
     yield
     # Shutdown
     logger.info("Shutting down Refund Bot service...")
+    # Note: We don't cleanup debug stats on shutdown to preserve them for debugging
+    # Use POST /debug/stats/reset to manually clear if needed
 
 
 app = FastAPI(

@@ -30,6 +30,7 @@ class ChatResponse(BaseModel):
     response: str
     refund_initiated: bool = False
     refund_id: Optional[str] = None
+    llm_debug: Optional[dict] = None
 
 
 @router.post("/chat", response_model=ChatResponse)
