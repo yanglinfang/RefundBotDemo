@@ -217,6 +217,15 @@ arrived damaged, and your support team has been unhelpful. I demand an immediate
 refund and compensation..."
 ```
 
+## Routing Test Scripts
+
+Use the provided shell scripts to reproduce routing scenarios end-to-end and debug issues quickly:
+
+- `./scripts/test_refund_flow.sh` – Exercises the full conversation + refund APIs (valid order, invalid order, and a complex complaint that should route to cloud when thresholds/endpoints are configured). Also inspects `/health/llm` so you can confirm which endpoint handled each request.
+- `./scripts/test_llm_routing_flow.sh` – Focused routing test that sends three increasingly complex chats and captures router health before/after. Ideal for comparing different `LLM_ENDPOINTS_JSON` configurations or model swaps.
+
+Both scripts assume the backend and (optionally) Ollama/LLM containers are running. Customize `LLM_ENDPOINTS_JSON`, `LLM_ROUTER_STRATEGY`, thresholds, and API keys in `.env` or `docker-compose.yml` to compare local vs. cloud trade-offs and measure latency/cost impacts.
+
 ## LLM Routing
 
 The system supports intelligent routing between multiple LLM endpoints:
