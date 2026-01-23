@@ -328,6 +328,14 @@ docker compose up -d --build
 docker compose logs -f refund-bot
 ```
 
+
+### Known risk of this demo
+
+#### Risk: No protection against:
+* Brute force attacks
+* API abuse
+* Cost explosion from excessive LLM calls
+
 ## License
 
 MIT
