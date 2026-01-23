@@ -2,6 +2,63 @@
 
 An **LLM-powered customer refund service** that demonstrates how to build an AI agent capable of handling refund requests through natural conversation. The bot understands customer intent, validates orders, and processes refunds automatically.
 
+## Demo
+
+### Intelligent LLM Routing in Action
+
+RefundBot uses **complexity-based routing** to optimize cost and quality:
+- **Simple requests** → Local Ollama (fast, free)
+- **Complex requests** → Cloud API (better reasoning)
+
+#### Step 1: Order History Page
+
+The demo web UI displays a customer's order history with refund options.
+
+![Order History Page](web-ui/ui_mock/step1_open_order_page.JPG)
+
+#### Step 2: Simple Refund Request → Local LLM
+
+When a customer makes a straightforward refund request, the system routes to **local Ollama** for fast, cost-effective processing.
+
+![Simple refund handled by local Ollama](web-ui/ui_mock/step2_refund_order_happy_path_local_api.JPG)
+
+**Notice in the Debug Panel:**
+- Agent: `Local (Ollama)`
+- Model: `llama3.2:1b`
+- Distribution: `Local (100%)`
+
+The local LLM handles simple requests like *"I want to refund the headphone, which is order number ORD-001"* efficiently and returns a proper refund confirmation.
+
+#### Step 3: Complex Request → Cloud API
+
+When a customer sends a complex message (angry complaint, lengthy explanation, hard-to-parse information), the system automatically routes to the **Cloud API** for better response quality.
+
+![Complex request handled by Cloud API](web-ui/ui_mock/step3_refund_order_complex_path_claude_api.JPG)
+
+**Notice in the Debug Panel:**
+- Agent: `Cloud (OpenAI)`
+- Model: `gpt-4o-mini`
+- Request Type: `refund_denial`
+- Distribution now shows both Local and Cloud usage
+
+In this example, an angry customer sends a long, complex message demanding escalation, referencing serial numbers, threatening social media posts, and requesting manager intervention. The system:
+1. Detects high complexity (word count > 40 or character count > 800)
+2. Routes to cloud API for nuanced understanding
+3. Provides an appropriate response handling the edge case (order not found)
+
+### Why This Matters
+
+| Scenario | Routing | Benefits |
+|----------|---------|----------|
+| Simple refund request | Local Ollama | Fast (~1s), free, works offline |
+| Angry customer complaint | Cloud API | Better empathy, nuanced response |
+| Complex multi-part request | Cloud API | Superior reasoning capabilities |
+| High word/character count | Cloud API | Handles long context better |
+
+This hybrid approach gives you the **best of both worlds**: cost efficiency for routine requests and quality assurance for complex situations.
+
+---
+
 ## Features
 
 - Natural language chat interface for refund requests
