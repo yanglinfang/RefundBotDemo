@@ -224,45 +224,41 @@ GET /health/llm?refresh=true  # Force probe all endpoints
 
 ```
 RefundBot/
-├── docker-compose.yml      # Service orchestration
-├── Dockerfile              # Main service container
-├── requirements.txt        # Python dependencies
-├── .env.example            # Environment template
-│
-├── src/                    # Main application
-│   ├── main.py             # FastAPI entry point
-│   ├── config.py           # Settings management
-│   ├── database.py         # SQLite setup
-│   ├── models/             # Database models
-│   ├── routers/            # API endpoints
-│   │   ├── health.py       # Health + debug endpoints
-│   │   ├── conversation.py # Chat API
-│   │   └── refund.py       # Refund API
-│   └── services/
-│       ├── llm_client.py   # LLM client with router
-│       ├── llm_router.py   # Multi-endpoint routing
-│       ├── debug_stats.py  # Usage tracking
-│       ├── conversation_service.py
-│       ├── refund_service.py
-│       ├── orders_client.py
-│       └── payments_client.py
-│
-├── services/
-│   ├── mock-orders/        # Mock order management service
-│   └── mock-payments/      # Mock payment processing service
-│
-├── web-ui/                 # React frontend
-│   ├── src/
-│   │   ├── App.jsx         # Main chat + debug panel
-│   │   └── index.css       # Styles
-│   ├── vite.config.js      # Dev server with API proxy
-│   └── package.json
-│
-├── scripts/                # Test scripts
-│   └── test_refund_flow.sh
-│
-├── tests/                  # Unit tests
-└── data/                   # SQLite database + debug stats
+|-- docker-compose.yml      # Service orchestration
+|-- Dockerfile              # Main service container
+|-- requirements.txt        # Python dependencies
+|-- .env.example            # Environment template
+|-- src/                    # Main application
+|   |-- main.py             # FastAPI entry point
+|   |-- config.py           # Settings management
+|   |-- database.py         # SQLite setup
+|   |-- models/             # Database models
+|   |-- routers/            # API endpoints
+|   |   |-- health.py       # Health + debug endpoints
+|   |   |-- conversation.py # Chat API
+|   |   `-- refund.py       # Refund API
+|   `-- services/
+|       |-- llm_client.py   # LLM client with router
+|       |-- llm_router.py   # Multi-endpoint routing
+|       |-- debug_stats.py  # Usage tracking
+|       |-- conversation_service.py
+|       |-- refund_service.py
+|       |-- orders_client.py
+|       `-- payments_client.py
+|-- services/
+|   |-- mock-orders/        # Mock order management service
+|   `-- mock-payments/      # Mock payment processing service
+|-- web-ui/                 # React frontend
+|   |-- src/
+|   |   |-- App.jsx         # Main chat + debug panel
+|   |   `-- index.css       # Styles
+|   |-- vite.config.js      # Dev server with API proxy
+|   `-- package.json
+|-- scripts/                # Test scripts
+|   |-- test_refund_flow.sh
+|   `-- test_llm_routing_flow.sh
+|-- tests/                  # Unit tests
+`-- data/                   # SQLite database + debug stats
 ```
 
 ## Environment Variables
@@ -273,7 +269,7 @@ RefundBot/
 | `ORDERS_SERVICE_URL` | `http://mock-orders:8001` | Orders service URL |
 | `PAYMENTS_SERVICE_URL` | `http://mock-payments:8002` | Payments service URL |
 | `LLM_API_URL` | `http://ollama:11434/v1` | Default LLM endpoint |
-| `LLM_API_KEY` | `ollama` | API key (empty for Ollama) |
+| `LLM_API_KEY` | `(empty)` | API key (Docker Compose sets `ollama` for local) |
 | `LLM_MODEL` | `llama3.2:1b` | Default model |
 | `LLM_ROUTER_STRATEGY` | `fallback` | Routing strategy |
 | `LLM_ENDPOINTS_JSON` | (empty) | JSON array of endpoints |
@@ -312,6 +308,9 @@ Simulates a payment processing system.
 ```bash
 # Run the test script
 ./scripts/test_refund_flow.sh
+
+# LLM routing scenarios
+./scripts/test_llm_routing_flow.sh
 
 # Run unit tests
 pytest
