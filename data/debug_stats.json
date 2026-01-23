@@ -1,50 +1,11 @@
 {
-  "started_at": 1769153163.8089294,
-  "total_requests": 1,
-  "local_requests": 1,
+  "started_at": 1769153627.0416949,
+  "total_requests": 0,
+  "local_requests": 0,
   "cloud_requests": 0,
-  "total_tokens": 343,
-  "total_latency_ms": 19279.655393969733,
-  "endpoints": {
-    "local": {
-      "name": "local",
-      "url": "http://ollama:11434/v1",
-      "model": "llama3.2:1b",
-      "is_local": true,
-      "total_requests": 1,
-      "successful_requests": 1,
-      "failed_requests": 0,
-      "total_latency_ms": 19279.655393969733,
-      "total_tokens": 343,
-      "requests_by_type": {
-        "refund_denial": 1
-      }
-    }
-  },
-  "recent_requests": [
-    {
-      "timestamp": 1769153206.051269,
-      "endpoint_name": "local",
-      "endpoint_url": "http://ollama:11434/v1",
-      "model": "llama3.2:1b",
-      "is_local": true,
-      "request_type": "refund_denial",
-      "latency_ms": 19279.655393969733,
-      "tokens": 343,
-      "success": true,
-      "error": null
-    }
-  ],
-  "last_request": {
-    "timestamp": 1769153206.051269,
-    "endpoint_name": "local",
-    "endpoint_url": "http://ollama:11434/v1",
-    "model": "llama3.2:1b",
-    "is_local": true,
-    "request_type": "refund_denial",
-    "latency_ms": 19279.655393969733,
-    "tokens": 343,
-    "success": true,
-    "error": null
-  }
+  "total_tokens": 0,
+  "total_latency_ms": 0.0,
+  "endpoints": {},
+  "recent_requests": [],
+  "last_request": null
 }

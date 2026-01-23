@@ -16,6 +16,12 @@ from src.services.debug_stats import get_debug_stats
 
 logger = logging.getLogger(__name__)
 
+PREFIX_CLEANUP_RE = re.compile(
+    r"^(?:here(?:'s| is)\s+(?:an?|the)\s+[a-z\s]{0,80}?response:)\s*",
+    re.IGNORECASE
+)
+SALUTATION_RE = re.compile(r"^dear\s+[^\n,:]+[:,]?\s*", re.IGNORECASE)
+
 # System prompt for the refund bot
 SYSTEM_PROMPT = """You are a helpful customer service assistant for an e-commerce platform.
 Your primary role is to help customers with refund requests.
@@ -29,7 +35,9 @@ If you detect a refund request, extract:
 - The order ID (format: ORD-XXX)
 - The reason for the refund
 
-Respond in a friendly, professional manner. Keep responses concise."""
+Respond in a friendly, professional manner. Keep responses concise and conversational.
+Do not include formal salutations or closings (like "Dear ___" or "Sincerely") and avoid
+placeholder text such as "[Your Name]". Provide the core information only."""
 
 
 class LLMClient:
@@ -124,7 +132,7 @@ class LLMClient:
                 },
             )
 
-            return response.choices[0].message.content.strip()
+            return self._clean_response(response.choices[0].message.content.strip())
 
         except Exception as e:
             logger.error("Error generating response: %s", e)
@@ -160,7 +168,7 @@ Keep it concise (2-3 sentences) and professional."""
                 context={"order_id": order_id, "message": routing_message, "message_chars": len(routing_message)},
             )
 
-            return response.choices[0].message.content.strip()
+            return self._clean_response(response.choices[0].message.content.strip())
 
         except Exception as e:
             logger.error("Error generating confirmation: %s", e)
@@ -194,7 +202,7 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
                 context={"order_id": order_id, "message": routing_message, "message_chars": len(routing_message)},
             )
 
-            return response.choices[0].message.content.strip()
+            return self._clean_response(response.choices[0].message.content.strip())
 
         except Exception as e:
             logger.error("Error generating denial: %s", e)
@@ -322,6 +330,14 @@ Be understanding but clear. Offer alternatives if possible. Keep it concise."""
     def get_last_debug(self) -> Optional[dict]:
         """Return the most recent LLM request metadata."""
         return self._last_debug
+
+    @staticmethod
+    def _clean_response(text: str) -> str:
+        """Remove common boilerplate prefixes some models add."""
+        cleaned = PREFIX_CLEANUP_RE.sub("", text)
+        cleaned = SALUTATION_RE.sub("", cleaned).strip()
+        cleaned = cleaned.replace("[Your Name]", "").strip()
+        return cleaned
 
     @staticmethod
     def _compute_complexity_score(text: str) -> int:
