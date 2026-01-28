@@ -209,19 +209,7 @@ class LLMRouter:
         if not candidates:
             return candidates
 
-        complexity_score = context.get("complexity_score")
-        message_chars = context.get("message_chars")
-        unique_words = context.get("unique_words")
-
-        is_complex = False
-        if isinstance(complexity_score, int) and complexity_score >= self.complexity_threshold:
-            is_complex = True
-        if isinstance(unique_words, int) and unique_words >= self.complexity_threshold:
-            is_complex = True
-        if isinstance(message_chars, int) and message_chars >= self.complexity_char_threshold:
-            is_complex = True
-
-        if not is_complex:
+        if not self._is_complex_message(context):
             return candidates
 
         non_local = [ep for ep in candidates if not ep.is_local]
